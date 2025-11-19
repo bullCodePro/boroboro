@@ -1,8 +1,8 @@
-const { App } = require('@slack/bolt');
+const { App } = require("@slack/bolt");
 
 const app = new App({
-  token: "N08w9wwFukM2CNYjYMqON5SH",
-  signingSecret: "880ad6b8c9ab7a7d443b2684aea3a386"
+token: "N08w9wwFukM2CNYjYMqON5SH", 
+signingSecret: "627c04c0d75d35c8eb7d8fd648c5b8aa"
 });
 
 function getNextWorkdayTarget() {
@@ -31,13 +31,13 @@ function getNextWorkdayTarget() {
   return `Para el próximo BORO faltan ${days} días, ${hours} horas, ${minutes} minutos y ${seconds} segundos.`;
 }
 
-app.command('/boroboro', async ({ command, ack, respond }) => {
+app.command("/boroboro", async ({ command, ack, respond }) => {
   await ack();
-  const mensaje = getNextWorkdayTarget();
-  await respond(mensaje);
+  await respond(getNextWorkdayTarget());
 });
 
 (async () => {
-  await app.start(process.env.PORT || 3000);
-  console.log('⚡️ Slack app is running!');
+  const port = process.env.PORT || 3000;
+  await app.start(port);
+  console.log(`⚡️ Slack app running on port ${port}`);
 })();

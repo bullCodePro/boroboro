@@ -6,7 +6,9 @@
     "start": "node src/index.js"
   },
   "dependencies": {
-    "@slack/bolt": "^3.22.0",
-    "dotenv": "^16.4.7"
+    "@slack/bolt": "^3.22.0"
+  },
+  "engines": {
+    "node": "20.x"
   }
 }
