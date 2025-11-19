@@ -1,9 +1,8 @@
-require('dotenv').config();
 const { App } = require('@slack/bolt');
 
 const app = new App({
-  token: process.env.SLACK_BOT_TOKEN,
-  signingSecret: process.env.SLACK_SIGNING_SECRET
+  token: "N08w9wwFukM2CNYjYMqON5SH",
+  signingSecret: "880ad6b8c9ab7a7d443b2684aea3a386"
 });
 
 function getNextWorkdayTarget() {
