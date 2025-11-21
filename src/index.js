@@ -1,8 +1,20 @@
+require("dotenv").config();
 const { App } = require("@slack/bolt");
+const fs = require("fs");
+const path = require("path");
+
+// Ruta del archivo de logs: logs/borologs
+const LOG_DIR = path.join(__dirname, "..", "logs");
+const LOG_FILE = path.join(LOG_DIR, "borologs");
+
+// Asegurar que exista la carpeta de logs (por si Render clona sin ella)
+if (!fs.existsSync(LOG_DIR)) {
+  fs.mkdirSync(LOG_DIR, { recursive: true });
+}
 
 const app = new App({
-token: process.env.SLACK_BOT_TOKEN,
-signingSecret: process.env.SLACK_SIGNING_SECRET
+  token: process.env.SLACK_BOT_TOKEN,
+  signingSecret: process.env.SLACK_SIGNING_SECRET
 });
 
 function getNextWorkdayTarget() {
@@ -31,8 +43,25 @@ function getNextWorkdayTarget() {
   return `Para el próximo BORO faltan ${days} días, ${hours} horas, ${minutes} minutos y ${seconds} segundos.`;
 }
 
-app.command("/boroboro", async ({ ack, respond }) => {
+app.command("/boroboro", async ({ ack, respond, command }) => {
   await ack();
+
+  const timestamp = new Date().toISOString();
+  const username = command.user_name;
+  const userId = command.user_id;
+  const channelName = command.channel_name || "";
+  const channelId = command.channel_id;
+  const teamId = command.team_id;
+
+  const logEntry =
+    `${timestamp} - user=${username} (${userId}) ` +
+    `channel=${channelName || channelId} team=${teamId} command=/boroboro\n`;
+
+  fs.appendFile(LOG_FILE, logEntry, (err) => {
+    if (err) {
+      console.error("Error al escribir en el log:", err);
+    }
+  });
 
   await respond({
     response_type: "in_channel",
