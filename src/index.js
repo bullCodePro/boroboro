@@ -1,4 +1,3 @@
-require("dotenv").config();
 const { App } = require("@slack/bolt");
 const fs = require("fs");
 const path = require("path");
@@ -7,7 +6,7 @@ const path = require("path");
 const LOG_DIR = path.join(__dirname, "..", "logs");
 const LOG_FILE = path.join(LOG_DIR, "borologs");
 
-// Asegurar que exista la carpeta de logs (por si Render clona sin ella)
+// Aseguramos que exista la carpeta de logs
 if (!fs.existsSync(LOG_DIR)) {
   fs.mkdirSync(LOG_DIR, { recursive: true });
 }
@@ -18,11 +17,17 @@ const app = new App({
 });
 
 function getNextWorkdayTarget() {
-  const now = new Date();
+  // Fecha actual en UTC
+  const nowUTC = new Date();
+
+  // Convertimos a UTC-3 (Uruguay)
+  const now = new Date(nowUTC.getTime() - 3 * 60 * 60 * 1000);
+
+  // Target = hoy a las 17:30 (en UTC-3)
   let target = new Date(now);
   target.setHours(17, 30, 0, 0);
 
-  // Avanza al siguiente día hábil si es después de las 17:30 o fin de semana
+  // Si ya pasó 17:30 o es fin de semana → próximo día hábil
   while (
     target <= now ||
     target.getDay() === 0 || // domingo
