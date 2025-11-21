@@ -1,4 +1,5 @@
-const { App } = require("@slack/bolt");
+require("dotenv").config();
+const { App, ExpressReceiver } = require("@slack/bolt");
 const fs = require("fs");
 const path = require("path");
 
@@ -14,11 +15,15 @@ if (!fs.existsSync(LOG_DIR)) {
 }
 
 // ==============================
-//  SLACK APP
+//  EXPRESS RECEIVER + SLACK APP
 // ==============================
+const receiver = new ExpressReceiver({
+  signingSecret: process.env.SLACK_SIGNING_SECRET
+});
+
 const app = new App({
   token: process.env.SLACK_BOT_TOKEN,
-  signingSecret: process.env.SLACK_SIGNING_SECRET
+  receiver
 });
 
 // ==============================
@@ -26,7 +31,7 @@ const app = new App({
 // ==============================
 function getNextWorkdayTarget() {
   const nowUTC = new Date();
-  const now = new Date(nowUTC.getTime() - 3 * 60 * 60 * 1000); // UTC-3
+  const now = new Date(nowUTC.getTime() - 3 * 60 * 60 * 1000); // UTC-3 fijo
 
   let target = new Date(now);
   target.setHours(17, 30, 0, 0);
@@ -45,10 +50,10 @@ function getNextWorkdayTarget() {
 
   const days = Math.floor(totalSeconds / (3600 * 24));
   const hours = Math.floor((totalSeconds % (3600 * 24)) / 3600);
-  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const minutes = Math.floor((totalSeconds % (3600 * 24)) / 60);
   const seconds = totalSeconds % 60;
 
-  return `Para el próximo BORO faltan ${days} días, ${hours} horas, ${minutes} minutos y ${seconds} segundos.`;
+  return `Faltan ${days} días, ${hours} horas, ${minutes} minutos y ${seconds} segundos para el BORO.`;
 }
 
 // ==============================
@@ -60,7 +65,7 @@ app.command("/boroboro", async ({ ack, respond, command }) => {
   const timestamp = new Date().toISOString();
   const username = command.user_name;
   const userId = command.user_id;
-  const channelName = command.channel_name || ""; 
+  const channelName = command.channel_name || "";
   const channelId = command.channel_id;
   const teamId = command.team_id;
 
@@ -81,7 +86,7 @@ app.command("/boroboro", async ({ ack, respond, command }) => {
 // ==============================
 //  ENDPOINT PÚBLICO /logs
 // ==============================
-app.receiver.app.get("/logs", (req, res) => {
+receiver.app.get("/logs", (req, res) => {
   fs.readFile(LOG_FILE, "utf8", (err, data) => {
     if (err) {
       return res.status(500).send("No se pudieron leer los logs.");
@@ -96,6 +101,6 @@ app.receiver.app.get("/logs", (req, res) => {
 // ==============================
 (async () => {
   const port = process.env.PORT || 3000;
-  await app.start(port);
+  await app.start(port); // Bolt arranca el ExpressReceiver internamente
   console.log(`⚡️ Slack app running on port ${port}`);
 })();
