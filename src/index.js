@@ -31,9 +31,13 @@ function getNextWorkdayTarget() {
   return `Para el próximo BORO faltan ${days} días, ${hours} horas, ${minutes} minutos y ${seconds} segundos.`;
 }
 
-app.command("/boroboro", async ({ command, ack, respond }) => {
+app.command("/boroboro", async ({ ack, respond }) => {
   await ack();
-  await respond(getNextWorkdayTarget());
+
+  await respond({
+    response_type: "in_channel",
+    text: getNextWorkdayTarget()
+  });
 });
 
 (async () => {
