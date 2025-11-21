@@ -2,32 +2,35 @@ const { App } = require("@slack/bolt");
 const fs = require("fs");
 const path = require("path");
 
-// Ruta del archivo de logs: logs/borologs
+// ==============================
+//  LOGGING SETUP
+// ==============================
 const LOG_DIR = path.join(__dirname, "..", "logs");
 const LOG_FILE = path.join(LOG_DIR, "borologs");
 
-// Aseguramos que exista la carpeta de logs
+// Crear carpeta logs si no existe
 if (!fs.existsSync(LOG_DIR)) {
   fs.mkdirSync(LOG_DIR, { recursive: true });
 }
 
+// ==============================
+//  SLACK APP
+// ==============================
 const app = new App({
   token: process.env.SLACK_BOT_TOKEN,
   signingSecret: process.env.SLACK_SIGNING_SECRET
 });
 
+// ==============================
+//  BORO CALC (UTC-3)
+// ==============================
 function getNextWorkdayTarget() {
-  // Fecha actual en UTC
   const nowUTC = new Date();
+  const now = new Date(nowUTC.getTime() - 3 * 60 * 60 * 1000); // UTC-3
 
-  // Convertimos a UTC-3 (Uruguay)
-  const now = new Date(nowUTC.getTime() - 3 * 60 * 60 * 1000);
-
-  // Target = hoy a las 17:30 (en UTC-3)
   let target = new Date(now);
   target.setHours(17, 30, 0, 0);
 
-  // Si ya pasó 17:30 o es fin de semana → próximo día hábil
   while (
     target <= now ||
     target.getDay() === 0 || // domingo
@@ -48,13 +51,16 @@ function getNextWorkdayTarget() {
   return `Para el próximo BORO faltan ${days} días, ${hours} horas, ${minutes} minutos y ${seconds} segundos.`;
 }
 
+// ==============================
+//  SLASH COMMAND /boroboro
+// ==============================
 app.command("/boroboro", async ({ ack, respond, command }) => {
   await ack();
 
   const timestamp = new Date().toISOString();
   const username = command.user_name;
   const userId = command.user_id;
-  const channelName = command.channel_name || "";
+  const channelName = command.channel_name || ""; 
   const channelId = command.channel_id;
   const teamId = command.team_id;
 
@@ -63,9 +69,7 @@ app.command("/boroboro", async ({ ack, respond, command }) => {
     `channel=${channelName || channelId} team=${teamId} command=/boroboro\n`;
 
   fs.appendFile(LOG_FILE, logEntry, (err) => {
-    if (err) {
-      console.error("Error al escribir en el log:", err);
-    }
+    if (err) console.error("Error al escribir log:", err);
   });
 
   await respond({
@@ -74,6 +78,22 @@ app.command("/boroboro", async ({ ack, respond, command }) => {
   });
 });
 
+// ==============================
+//  ENDPOINT PÚBLICO /logs
+// ==============================
+app.receiver.app.get("/logs", (req, res) => {
+  fs.readFile(LOG_FILE, "utf8", (err, data) => {
+    if (err) {
+      return res.status(500).send("No se pudieron leer los logs.");
+    }
+    res.setHeader("Content-Type", "text/plain; charset=utf-8");
+    res.send(data || "No hay logs todavía.");
+  });
+});
+
+// ==============================
+//  START SERVER
+// ==============================
 (async () => {
   const port = process.env.PORT || 3000;
   await app.start(port);
